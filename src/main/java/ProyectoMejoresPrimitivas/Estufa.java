@@ -57,10 +57,10 @@ class ManejadorControladorDesdeEstufa implements Runnable {
     }
 
     private String procesarComando(String comando) {
-        if (comando.equals("ENCENDER_ESTUFA")) {
+        if (comando.equals("ENCENDER")) {
             // Aquí implementa la lógica para encender la estufa
             return "La estufa ha sido encendida";
-        } else if (comando.equals("APAGAR_ESTUFA")) {
+        } else if (comando.equals("APAGAR")) {
             // Aquí implementa la lógica para apagar la estufa
             return "La estufa ha sido apagada";
         } else {

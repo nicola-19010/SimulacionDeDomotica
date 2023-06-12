@@ -4,11 +4,11 @@ import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 
-public class Controlador {
+public class Controlador2 {
     private static final int PUERTO = 12345;
 
     public static void main(String[] args) {
-        Controlador controlador = new Controlador();
+        Controlador2 controlador = new Controlador2();
         controlador.ejecutar();
     }
 
@@ -19,7 +19,7 @@ public class Controlador {
                 Socket socket = servidor.accept();
 
                 // Crea un nuevo hilo para manejar la comunicación con el cliente
-                ManejadorCliente manejadorCliente = new ManejadorCliente(socket);
+                ManejadorCliente2 manejadorCliente = new ManejadorCliente2(socket);
                 manejadorCliente.start();
             }
         } catch (IOException e) {
@@ -28,10 +28,10 @@ public class Controlador {
     }
 }
 
-class ManejadorCliente extends Thread {
+class ManejadorCliente2 extends Thread {
     private Socket socket;
 
-    public ManejadorCliente(Socket socket) {
+    public ManejadorCliente2(Socket socket) {
         this.socket = socket;
     }
 
@@ -40,11 +40,11 @@ class ManejadorCliente extends Thread {
         try (BufferedReader entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()));
              PrintWriter salida = new PrintWriter(socket.getOutputStream(), true)) {
 
-            // Lee la solicitud del cliente
+            //Lee la solicitud del cliente
             String solicitud = entrada.readLine();
             System.out.println("Solicitud recibida: " + solicitud);
 
-            // Lógica del controlador para procesar la solicitud
+            //Logica del controlador para procesar la solicitud y procesamiento
             String respuesta = procesarSolicitud(solicitud);
 
             // Envía la respuesta al cliente
@@ -60,42 +60,29 @@ class ManejadorCliente extends Thread {
     private String procesarSolicitud(String solicitud) {
         return switch (solicitud) {
             case "SOLICITAR_ESTADO" -> obtenerEstado();
-            case "ENCENDER_ESTUFA" -> enviarComandoEstufa("ENCENDER");
-            case "APAGAR_ESTUFA" -> enviarComandoEstufa("APAGAR");
-            case "SOLICITAR_TEMPERATURA" -> enviarComandoSensorTermico("OBTENER_TEMPERATURA");
+            case "ENCENDER_ESTUFA" -> enviarComando("ENCENDER", "localhost", 12347);
+            case "APAGAR_ESTUFA" -> enviarComando("APAGAR", "localhost", 12347);
+            case "SOLICITAR_TEMPERATURA" -> enviarComando("OBTENER_TEMPERATURA", "localhost", 12346);
             default -> "Error: Solicitud no válida";
         };
     }
 
     private String obtenerEstado() {
-        String estadoEstufa = enviarComandoEstufa("OBTENER_ESTADO");
-        String estadoSensorTermico = enviarComandoSensorTermico("OBTENER_ESTADO");
+        String estadoEstufa = enviarComando("OBTENER_ESTADO", "localhost", 12347);
+        String estadoSensorTermico = enviarComando("OBTENER_ESTADO", "localhost", 12346);
         return "Estado actual del sistema:\n" + estadoEstufa + "\n" + estadoSensorTermico;
     }
 
-    private String enviarComandoEstufa(String comando) {
-        try (Socket estufaSocket = new Socket("localhost", 12347);
-             PrintWriter estufaSalida = new PrintWriter(estufaSocket.getOutputStream(), true);
-             BufferedReader estufaEntrada = new BufferedReader(new InputStreamReader(estufaSocket.getInputStream()))) {
+    private String enviarComando(String comando, String host, int puerto) {
+        try (Socket socket = new Socket(host, puerto);
+             PrintWriter salida = new PrintWriter(socket.getOutputStream(), true);
+             BufferedReader entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
-            estufaSalida.println(comando);
-            return estufaEntrada.readLine();
+            salida.println(comando);
+            return entrada.readLine();
         } catch (IOException e) {
             e.printStackTrace();
-            return "Error en la comunicación con la estufa";
-        }
-    }
-
-    private String enviarComandoSensorTermico(String comando) {
-        try (Socket sensorSocket = new Socket("localhost", 12346);
-             PrintWriter sensorSalida = new PrintWriter(sensorSocket.getOutputStream(), true);
-             BufferedReader sensorEntrada = new BufferedReader(new InputStreamReader(sensorSocket.getInputStream()))) {
-
-            sensorSalida.println(comando);
-            return sensorEntrada.readLine();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return "Error en la comunicación con el sensor térmico";
+            return "Error en la comunicación con el componente";
         }
     }
 
