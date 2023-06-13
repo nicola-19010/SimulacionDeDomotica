@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.net.*;
 
 public class SensorMovimiento {
-    private static final int PUERTO = 12350;
+    private static final int PUERTO = 12399;
 
     public static void main(String[] args) {
 
