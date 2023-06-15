@@ -1,6 +1,5 @@
 package ProyectoMejoresPrimitivas;
 
-import java.awt.font.TextHitInfo;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -8,13 +7,13 @@ import java.util.Scanner;
 
 public class Cliente3 {
     private static final String HOST = "localhost";
-    private static final int PUERTO = 12345;
+    private static final int PUERTO_SERVIDOR = 12345;
     private static final int PUERTO_ESCUCHANDO = 12400;
 
     public static void main(String[] args) {
         Cliente3 cliente = new Cliente3();
-        EjecutarMenu hiloEjecutarMenu = new EjecutarMenu(HOST, PUERTO);
-        ManejarRecepcionDeAlertaSensor hiloRecepcion = new ManejarRecepcionDeAlertaSensor(PUERTO_ESCUCHANDO);
+        EjecutarMenu hiloEjecutarMenu = new EjecutarMenu(HOST, PUERTO_SERVIDOR);
+        IniciarAlertaTCP hiloRecepcion = new IniciarAlertaTCP(PUERTO_ESCUCHANDO);
         hiloEjecutarMenu.start();
         hiloRecepcion.start();
     }
@@ -110,48 +109,68 @@ public class Cliente3 {
             System.err.println(mensaje);
         }
     }
-    class ManejarRecepcionDeAlertaSensor extends Thread {
-        private int PUERTO;
-        public ManejarRecepcionDeAlertaSensor (int PUERTO){
-            this.PUERTO = PUERTO;
+class IniciarAlertaTCP extends Thread {
+    private int PUERTO;
+    public IniciarAlertaTCP (int PUERTO) {
+        this.PUERTO = PUERTO;
+    }
+
+    @Override
+    public void run() {
+        try (ServerSocket servidor = new ServerSocket(PUERTO)) {
+
+            while (true) {
+                Socket socket = servidor.accept();
+
+                // Crea un nuevo hilo para manejar la comunicación con el cliente
+                ManejadorEnviarAlertaACliente manejadorAlerta = new ManejadorEnviarAlertaACliente(socket);
+                manejadorAlerta.start();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-//ACTUA COMO SERVIDOR
+    }
+
+
+    class ManejadorEnviarAlertaACliente extends Thread {
+        private Socket socket;
+
+        public ManejadorEnviarAlertaACliente(Socket socket) {
+            this.socket = socket;
+        }
+
         @Override
         public void run() {
+            try (BufferedReader entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                 PrintWriter salida = new PrintWriter(socket.getOutputStream(), true)) {
 
-            try {
-                //Creamos el socket del servidor
-                ServerSocket servidor = new ServerSocket(PUERTO);
-                //Siempre estara escuchando peticiones
-                while (true) {
+                //Lee la solicitud del cliente
+                String solicitud = entrada.readLine();
+                System.out.println("Solicitud recibida: " + solicitud);
 
-                    //Espero a que un cliente se conecte
-                    Socket socket = servidor.accept();
-                    //System.out.println("Cliente conectado");
-                    DataInputStream in = new DataInputStream(socket.getInputStream());
-                    DataOutputStream out = new DataOutputStream(socket.getOutputStream());
-                    //Leo el mensaje que me envia
-                    String mensaje = in.readLine();
+                //Logica del controlador para procesar la solicitud y procesamiento
+                String respuesta = ("Se recibio: "+ solicitud);
+                System.out.println(respuesta);
+                // Envía la respuesta al cliente
+                salida.println(respuesta);
 
-                    //System.out.println(mensaje);
-                    procesarMensaje(mensaje);
-                    //Le envio un mensaje
-                    //out.writeUTF("¡confirmacion recpeccion"); no queda abierto el socket
-
-                    //Cierro el socket
-                    socket.close();
-                }
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                e.printStackTrace();
+            } finally {
+                cerrarSocket();
             }
         }
-        void procesarMensaje (String mensaje) {
-            switch (mensaje){
-                case "SI_MOVIMIENTO":
-                    System.out.println("ALERTA_MOVIMIENTO");
-                    break;
-                default:
-                    System.out.println("ERROR_INESPERADO");
+
+
+        private void cerrarSocket() {
+            try {
+                socket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
     }
+}
+
+
+

@@ -3,6 +3,7 @@ package ProyectoMejoresPrimitivas;
 import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
+import java.util.Scanner;
 
 public class Controlador2 {
 
@@ -115,6 +116,7 @@ public class Controlador2 {
         private int PUERTO_SENSOR;
         private String HOST;
         private int PUERTO_CLIENTE;
+
         public ManejoRecepcionSensorMov (int PUERTO_SENSOR, String HOST, int PUERTO_CLIENTE) {
             this.PUERTO_SENSOR = PUERTO_SENSOR;
             this.HOST = HOST;
@@ -158,31 +160,64 @@ public class Controlador2 {
 
         private void evaluarMensaje (String mensaje) {
             if (mensaje.equals("SI_MOVIMIENTO")){
-                System.out.println("Alerta recibida: "+ mensaje);
-
-
-                enviarComando(mensaje, HOST,PUERTO_CLIENTE);
+                EjecutarAlertaACliente enviar = new EjecutarAlertaACliente(HOST, PUERTO_CLIENTE, mensaje);
+                enviar.start();
             }
         }
-
-        private String enviarComando(String comando, String host, int puerto) {
-            try (Socket socket = new Socket(host, puerto);
-                 PrintWriter salida = new PrintWriter(socket.getOutputStream(), true);
-                 BufferedReader entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
-
-                salida.println(comando);
-                return entrada.readLine();
-            } catch (IOException e) {
-                e.printStackTrace();
-                return "Error en la comunicación con el componente";
-            }
-
-        }
-        /*
-        try (ServerSocket servidor = new ServerSocket(PUERTO)) {
-
-                while (true) {
-                    Socket socket = servidor.accept();
-         */
 }
+        class EjecutarAlertaACliente extends Thread {
+            private static String HOST;
+            private static int PUERTO;
+            private String mensajeAlerta;
+            public EjecutarAlertaACliente (String HOST, int PUERTO, String mensajeAlerta) {
+                this.HOST = HOST;
+                this.PUERTO = PUERTO;
+                this.mensajeAlerta = mensajeAlerta;
+            }
+            @Override
+            public void run() {
+                    String opcion = mensajeAlerta;
+                    realizarSolicitud(opcion);
+                }
+
+            private void realizarSolicitud(String solicitud) {
+
+                try (Socket socket = conectarSocket();
+                     Scanner input = new Scanner(socket.getInputStream());
+                     PrintWriter output = new PrintWriter(socket.getOutputStream(), true)) {
+
+                    enviarSolicitud(output, solicitud);
+                    recibirRespuesta(input);
+
+                } catch (IOException e) {
+                    System.out.println("ERROR, revise su dispositivo de CONTROL");
+                    imprimirError("Error de E/S: " + e.getMessage());
+                }
+            }
+        private Socket conectarSocket() throws IOException {
+            Socket socket = new Socket(HOST, PUERTO);
+            System.out.println("Conectado al dispositivo CONTROL");
+            return socket;
+        }
+
+        private void enviarSolicitud(PrintWriter salida, String solicitud) {
+            salida.println(solicitud);
+            //para revisar lo que envia
+            //System.out.println("Solicitud enviada: " + solicitud);
+        }
+
+        private void recibirRespuesta(Scanner input) {
+            while (input.hasNextLine()) {
+                String respuesta = input.nextLine();
+                if (respuesta != null) {
+                    System.out.println("Respuesta dispositivo CONTROL: " + respuesta);
+                }
+            }
+        }
+
+        private void imprimirError(String mensaje) {
+            System.err.println(mensaje);
+        }
+    }
+
 

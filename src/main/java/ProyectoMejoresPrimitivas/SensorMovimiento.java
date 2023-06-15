@@ -11,7 +11,7 @@ public class SensorMovimiento {
         byte[] buffer;
         buffer = new byte[16];
         try {
-            System.out.println("Iniciado el servidor UDP");
+            System.out.println("Iniciado el sensor de movimiento");
             //Creacion del socket
             DatagramSocket socketUDP = new DatagramSocket(PUERTO);
 
