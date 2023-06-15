@@ -133,7 +133,7 @@ public class Controlador2 {
                     DatagramSocket socketUDP = new DatagramSocket();
 
                     String mensaje = "ENVIAR_ESTADO";
-                    buffer = mensaje.getBytes(StandardCharsets.UTF_8);
+                    buffer = mensaje.trim().getBytes(StandardCharsets.UTF_8);
 
                     //Solicitud por localhost
                     DatagramPacket pregunta = new DatagramPacket(buffer, buffer.length, direccionServidor, PUERTO_SENSOR);
@@ -143,10 +143,12 @@ public class Controlador2 {
                     DatagramPacket peticion = new DatagramPacket(buffer, buffer.length);
 
                     socketUDP.receive(peticion);
+                    byte[] data = new byte[peticion.getLength()];
+                    System.arraycopy(peticion.getData(), peticion.getOffset(), data, 0, peticion.getLength());
 
                     mensaje = new String(peticion.getData());
                     evaluarMensaje(mensaje);
-                    //cierra el socket
+
                     socketUDP.close();
                 }
             } catch (IOException e) {
@@ -157,6 +159,8 @@ public class Controlador2 {
         private void evaluarMensaje (String mensaje) {
             if (mensaje.equals("SI_MOVIMIENTO")){
                 System.out.println("Alerta recibida: "+ mensaje);
+
+
                 enviarComando(mensaje, HOST,PUERTO_CLIENTE);
             }
         }
@@ -172,6 +176,7 @@ public class Controlador2 {
                 e.printStackTrace();
                 return "Error en la comunicación con el componente";
             }
+
         }
         /*
         try (ServerSocket servidor = new ServerSocket(PUERTO)) {

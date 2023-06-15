@@ -23,9 +23,11 @@ public class SensorMovimiento {
 
                 //Recibo el datagrama
                 socketUDP.receive(peticion);
+                byte[] data = new byte[peticion.getLength()];
+                System.arraycopy(peticion.getData(), peticion.getOffset(), data, 0, peticion.getLength());
 
                 //Convierto lo recibido y mostrar el mensaje
-                String mensaje = new String(peticion.getData());
+                String mensaje = new String(data);
                 System.out.println("Se recibio: " + mensaje);
 
                 //Obtengo el puerto y la direccion de origen
@@ -34,13 +36,12 @@ public class SensorMovimiento {
                 InetAddress direccion = peticion.getAddress();
 
                 mensaje = procesarComando(detectarMovimiento());
-                buffer = mensaje.getBytes();
+                buffer = mensaje.trim().getBytes();
 
-                //creo el datagrama
                 DatagramPacket respuesta = new DatagramPacket(buffer, buffer.length, direccion, puertoCliente);
 
                 socketUDP.send(respuesta);
-                buffer = new byte[16];
+
                 Thread.sleep(3000);
 
             }
