@@ -1,10 +1,10 @@
-package ProyectoMejoresPrimitivas;
+package DEV.nuevos_nombres;
 
 import java.io.IOException;
-import java.net.*;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalTime;
-import java.util.Date;
 
 public class SensorMovimiento {
     private static final int PUERTO = 12399;

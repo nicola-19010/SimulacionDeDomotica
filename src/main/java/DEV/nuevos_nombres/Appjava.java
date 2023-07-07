@@ -1,34 +1,35 @@
-package ProyectoMejoresPrimitivas;
+package DEV.nuevos_nombres;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Locale;
 import java.util.Scanner;
 
-public class Cliente3 {
+public class Appjava {
     private static final String HOST = "localhost";
     private static final int PUERTO_SERVIDOR = 12345;
     private static final int PUERTO_ESCUCHANDO = 12400;
 
     public static void main(String[] args) {
-        Cliente3 cliente = new Cliente3();
+        Appjava cliente = new Appjava();
         EjecutarMenu hiloEjecutarMenu = new EjecutarMenu(HOST, PUERTO_SERVIDOR);
         IniciarAlertaTCP hiloRecepcion = new IniciarAlertaTCP(PUERTO_ESCUCHANDO);
         hiloEjecutarMenu.start();
         hiloRecepcion.start();
     }
+}
 
-
-    static class EjecutarMenu extends Thread {
+    class EjecutarMenu extends Thread {
         private static String HOST;
         private static int PUERTO;
-
-        public EjecutarMenu(String HOST, int PUERTO) {
+        public EjecutarMenu (String HOST, int PUERTO) {
             this.HOST = HOST;
             this.PUERTO = PUERTO;
         }
-
         @Override
         public void run() {
 
@@ -112,73 +113,69 @@ public class Cliente3 {
             System.err.println(mensaje);
         }
     }
+class IniciarAlertaTCP extends Thread {
+    private int PUERTO;
+    public IniciarAlertaTCP (int PUERTO) {
+        this.PUERTO = PUERTO;
+    }
 
-    static class IniciarAlertaTCP extends Thread {
-        private int PUERTO;
+    @Override
+    public void run() {
+        try (ServerSocket servidor = new ServerSocket(PUERTO)) {
 
-        public IniciarAlertaTCP(int PUERTO) {
-            this.PUERTO = PUERTO;
+            while (true) {
+                Socket socket = servidor.accept();
+
+                // Crea un nuevo hilo para manejar la comunicación con el cliente
+                ManejadorAlertaMovimiento manejadorAlerta = new ManejadorAlertaMovimiento(socket);
+                manejadorAlerta.start();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    class ManejadorAlertaMovimiento extends Thread {
+        private Socket socket;
+
+        public ManejadorAlertaMovimiento(Socket socket) {
+            this.socket = socket;
         }
 
         @Override
         public void run() {
-            try (ServerSocket servidor = new ServerSocket(PUERTO)) {
+            try (BufferedReader entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                 PrintWriter salida = new PrintWriter(socket.getOutputStream(), true)) {
 
-                while (true) {
-                    Socket socket = servidor.accept();
+                //Lee la solicitud del cliente
+                String solicitud = entrada.readLine();
 
-                    // Crea un nuevo hilo para manejar la comunicación con el cliente
-                    ManejadorAlertaMovimiento manejadorAlerta = new ManejadorAlertaMovimiento(socket);
-                    manejadorAlerta.start();
-                }
+                //Logica del controlador para procesar la solicitud y procesamiento
+                String respuesta = ("CLIENTE: "+ solicitud);
+                salida.println(respuesta);
+                procesarSolicitud(solicitud);
+
             } catch (IOException e) {
                 e.printStackTrace();
+            } finally {
+                cerrarSocket();
             }
+        }
+        private void procesarSolicitud (String mensaje) {
+            String [] cadenas = mensaje.replaceAll(" ", "").split(",");
+            if (cadenas[0].toUpperCase(Locale.ROOT).equals("SI_MOVIMIENTO")) {
+                System.out.println("ALERTA: Movimiento detectado a: "+cadenas[1]+ "hrs.");
+            }
+            // primer espacio antes de coma = comado --- segundo espacio --- hora
         }
 
 
-        class ManejadorAlertaMovimiento extends Thread {
-            private Socket socket;
-
-            public ManejadorAlertaMovimiento(Socket socket) {
-                this.socket = socket;
-            }
-
-            @Override
-            public void run() {
-                try (BufferedReader entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                     PrintWriter salida = new PrintWriter(socket.getOutputStream(), true)) {
-
-                    //Lee la solicitud del cliente
-                    String solicitud = entrada.readLine();
-
-                    //Logica del controlador para procesar la solicitud y procesamiento
-                    String respuesta = ("CLIENTE: " + solicitud);
-                    salida.println(respuesta);
-                    procesarSolicitud(solicitud);
-
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } finally {
-                    cerrarSocket();
-                }
-            }
-
-            private void procesarSolicitud(String mensaje) {
-                String[] cadenas = mensaje.replaceAll(" ", "").split(",");
-                if (cadenas[0].toUpperCase(Locale.ROOT).equals("SI_MOVIMIENTO")) {
-                    System.out.println("ALERTA: Movimiento detectado a: " + cadenas[1] + "hrs.");
-                }
-                // primer espacio antes de coma = comado --- segundo espacio --- hora
-            }
-
-
-            private void cerrarSocket() {
-                try {
-                    socket.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+        private void cerrarSocket() {
+            try {
+                socket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
     }
