@@ -3,6 +3,7 @@ package ProyectoMejoresPrimitivas;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.security.PublicKey;
 import java.util.Locale;
 import java.util.Scanner;
 
@@ -12,12 +13,12 @@ public class Cliente3 {
     private static final int PUERTO_ESCUCHANDO = 12400;
 
     public static void main(String[] args) {
-        Cliente3 cliente = new Cliente3();
         EjecutarMenu hiloEjecutarMenu = new EjecutarMenu(HOST, PUERTO_SERVIDOR);
         IniciarAlertaTCP hiloRecepcion = new IniciarAlertaTCP(PUERTO_ESCUCHANDO);
         hiloEjecutarMenu.start();
         hiloRecepcion.start();
     }
+
 
 
     static class EjecutarMenu extends Thread {

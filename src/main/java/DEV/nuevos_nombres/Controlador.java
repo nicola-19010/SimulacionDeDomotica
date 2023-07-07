@@ -9,17 +9,20 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalTime;
 import java.util.Scanner;
 
-public class Controlador2 {
+public class Controlador {
 
-    private static final int PUERTO = 12345;
-    private static final int PUERTO_SENSOR = 12399;
     public static final String HOST = "localhost";
-    private static final int PUERTO_CLIENTE = 12400;
+    private static final int PUERTO_APP = 23456;
+    private static final int PUERTO_APP_ESCUCHANDO = 12401;
+    private static final int PUERTO_SENSOR_MOV = 12399;
+
+
+
 
     public static void main(String[] args) {
 
-        EjecutarTCP comunicacionTCP = new EjecutarTCP(PUERTO);
-        ManejoRecepcionSensorMov comunicacionUDP = new ManejoRecepcionSensorMov(PUERTO_SENSOR, HOST, PUERTO_CLIENTE);
+        EjecutarTCP comunicacionTCP = new EjecutarTCP(PUERTO_APP);
+        ManejoRecepcionSensorMov comunicacionUDP = new ManejoRecepcionSensorMov(PUERTO_SENSOR_MOV, HOST, PUERTO_APP_ESCUCHANDO);
         comunicacionTCP.start();
         comunicacionUDP.start();
     }
@@ -39,7 +42,7 @@ public class Controlador2 {
                     Socket socket = servidor.accept();
 
                     // Crea un nuevo hilo para manejar la comunicación con el cliente
-                    ManejadorCliente2 manejadorCliente = new ManejadorCliente2(socket);
+                    ManejadorCliente manejadorCliente = new ManejadorCliente(socket);
                     manejadorCliente.start();
                 }
             } catch (IOException e) {
@@ -47,18 +50,17 @@ public class Controlador2 {
             }
         }
 
-
-        class ManejadorCliente2 extends Thread {
+        class ManejadorCliente extends Thread {
             private Socket socket;
 
-            public ManejadorCliente2(Socket socket) {
+            public ManejadorCliente(Socket socket) {
                 this.socket = socket;
             }
 
             @Override
-            public void run() {
+            public void run()  {
                 try (BufferedReader entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                     PrintWriter salida = new PrintWriter(socket.getOutputStream(), true)) {
+                     PrintWriter salida = new PrintWriter(socket.getOutputStream(), false)) {
 
                     //Lee la solicitud del cliente
                     String solicitud = entrada.readLine();
@@ -66,11 +68,11 @@ public class Controlador2 {
 
                     //Logica del controlador para procesar la solicitud y procesamiento
                     String respuesta = procesarSolicitud(solicitud);
-
+                    System.out.println(respuesta); //para saber
                     // Envía la respuesta al cliente
                     salida.println(respuesta);
 
-                } catch (IOException e) {
+                }catch (IOException e) {
                     e.printStackTrace();
                 } finally {
                     cerrarSocket();
@@ -79,18 +81,13 @@ public class Controlador2 {
 
             private String procesarSolicitud(String solicitud) {
                 return switch (solicitud) {
-                    case "SOLICITAR_ESTADO" -> obtenerEstado();
-                    case "ENCENDER_ESTUFA" -> enviarComando("ENCENDER", "localhost", 12347);
-                    case "APAGAR_ESTUFA" -> enviarComando("APAGAR", "localhost", 12347);
-                    case "SOLICITAR_TEMPERATURA" -> enviarComando("OBTENER_TEMPERATURA", "localhost", 12346);
+                    case "SOLICITAR_ESTADO_ESTUFA" -> enviarComando("OBTENER_ESTADO", "localhost", 12447);
+                    case "SOLICITAR_ESTADO_SENSOR_TEMP" -> enviarComando("OBTENER_ESTADO", "localhost", 23457);
+                    case "ENCENDER_ESTUFA" -> enviarComando("ENCENDER", "localhost", 12447);
+                    case "APAGAR_ESTUFA" -> enviarComando("APAGAR", "localhost", 12447);
+                    case "SOLICITAR_TEMPERATURA" -> enviarComando("OBTENER_TEMPERATURA", "localhost", 23457);
                     default -> "Error: Solicitud no válida";
                 };
-            }
-
-            private String obtenerEstado() {
-                String estadoEstufa = enviarComando("OBTENER_ESTADO", "localhost", 12347);
-                String estadoSensorTermico = enviarComando("OBTENER_ESTADO", "localhost", 12346);
-                return "Estado actual del sistema:\n" + estadoEstufa + "\n" + estadoSensorTermico;
             }
 
             private String enviarComando(String comando, String host, int puerto) {
@@ -99,11 +96,19 @@ public class Controlador2 {
                      BufferedReader entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
                     salida.println(comando);
-                    return entrada.readLine();
+                    String deVuelta = entrada.readLine().toString();
+                    return deVuelta;
                 } catch (IOException e) {
-                    e.printStackTrace();
-                    return "Error en la comunicación con el componente";
+                    return imprimirError("Error: componente no conectado: "+ identificarComponente(puerto) +", "+ e.getMessage());
+                }finally {
+                    cerrarSocket();
                 }
+            }
+
+            private String identificarComponente (int puerto) {
+                if (puerto == 12447) return "ESTUFA";
+                if (puerto == 23457) return "SENSOR_TERMICO";
+                return "";
             }
 
             private void cerrarSocket() {
@@ -112,6 +117,10 @@ public class Controlador2 {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+            }
+            private String imprimirError(String mensaje) {
+                System.err.println(mensaje);
+                return mensaje;
             }
         }
     }
@@ -198,8 +207,7 @@ public class Controlador2 {
                     recibirRespuesta(input);
 
                 } catch (IOException e) {
-                    System.out.println("ERROR, revise su dispositivo de CONTROL");
-                    imprimirError("Error de E/S: " + e.getMessage());
+                    imprimirError("Revise su aplicacion. Error de E/S: " + e.getMessage());
                 }
             }
         private Socket conectarSocket() throws IOException {

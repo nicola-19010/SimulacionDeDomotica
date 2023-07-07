@@ -6,12 +6,17 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.Time;
+import java.time.LocalTime;
+import java.util.Date;
 import java.util.Random;
 
 public class SensorTermico {
-    private static final int PUERTO = 12346;
+    private static final int PUERTO = 23457;
+
 
     public static void main(String[] args) {
+
         try {
             ServerSocket servidor = new ServerSocket(PUERTO);
 
@@ -61,16 +66,42 @@ class ManejadorControladorDesdeSensorTermico implements Runnable {
         if (comando.equals("OBTENER_TEMPERATURA")) {
             double temperatura = obtenerTemperatura();
             return "Temperatura actual: " + temperatura + " °C";
+        } else if (comando.equals("OBTENER_ESTADO_SENSOR_TEMP")) {
+            return "CONECTADO";
         } else {
             // Si no se reconoce el comando, devuelve una respuesta de error
             return "Error: Comando no válido";
         }
     }
 
-    private double obtenerTemperatura() {
-        // Aquí implementa la lógica para obtener la temperatura actual del sensor térmico
-        // Por ejemplo, puedes leer datos de temperatura de un sensor o generar valores simulados
-        Random random = new Random();
-        return 20.0 + random.nextDouble() * 10.0; // Genera una temperatura simulada entre 20.0 y 30.0
+    private int obtenerTemperatura() {
+        LocalTime tiempo = LocalTime.now().withNano(0);
+        String[] formato = tiempo.toString().split(":");
+        int hora = Integer.parseInt(formato[1]);
+        if (hora > 3 && hora <= 6) {
+            return 3;
+        }
+        if (hora > 6 && hora <= 9) {
+            return 4;
+        }
+        if (hora > 10 && hora <= 11) {
+            return 5;
+        }
+        if (hora > 12 && hora <= 14) {
+            return 7;
+        }
+        if (hora > 15 && hora <= 17) {
+            return 8;
+        }
+        if (hora > 18 && hora <= 20) {
+            return 9;
+        }
+        if (hora > 21 && hora <= 23) {
+            return 8;
+        }
+        if (hora > 00 && hora <= 3) {
+            return 7;
+        }
+        return 0;
     }
 }

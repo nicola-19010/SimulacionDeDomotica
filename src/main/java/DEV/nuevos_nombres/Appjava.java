@@ -1,9 +1,7 @@
 package DEV.nuevos_nombres;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
+import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Locale;
@@ -11,12 +9,12 @@ import java.util.Scanner;
 
 public class Appjava {
     private static final String HOST = "localhost";
-    private static final int PUERTO_SERVIDOR = 12345;
-    private static final int PUERTO_ESCUCHANDO = 12400;
+    private static final int PUERTO_CONTROLADOR = 23456;
+    private static final int PUERTO_ESCUCHANDO = 12401;
 
     public static void main(String[] args) {
-        Appjava cliente = new Appjava();
-        EjecutarMenu hiloEjecutarMenu = new EjecutarMenu(HOST, PUERTO_SERVIDOR);
+
+        EjecutarMenu hiloEjecutarMenu = new EjecutarMenu(HOST, PUERTO_CONTROLADOR);
         IniciarAlertaTCP hiloRecepcion = new IniciarAlertaTCP(PUERTO_ESCUCHANDO);
         hiloEjecutarMenu.start();
         hiloRecepcion.start();
@@ -32,10 +30,7 @@ public class Appjava {
         }
         @Override
         public void run() {
-
-
             Scanner teclado = new Scanner(System.in);
-
             boolean ejecucionActiva = true;
 
             while (ejecucionActiva) {
@@ -43,12 +38,14 @@ public class Appjava {
                 String opcion = pedirOpcion(teclado);
 
                 switch (opcion) {
-                    case "1" -> realizarSolicitud("SOLICITAR_ESTADO");
-                    case "2" -> realizarSolicitud("ENCENDER_ESTUFA");
-                    case "3" -> realizarSolicitud("APAGAR_ESTUFA");
-                    case "4" -> realizarSolicitud("SOLICITAR_TEMPERATURA");
+                    case "1" -> realizarSolicitud("SOLICITAR_ESTADO_ESTUFA");
+                    case "2" -> realizarSolicitud("SOLICITAR_ESTADO_SENSOR_TEMP");
+                    case "3" -> realizarSolicitud("ENCENDER_ESTUFA");
+                    case "4" -> realizarSolicitud("APAGAR_ESTUFA");
+                    case "5" -> realizarSolicitud("SOLICITAR_TEMPERATURA");
                     case "0" -> {
                         ejecucionActiva = false;
+
                         System.out.println("Saliendo...");
                     }
                     default -> System.out.println("Opción inválida. Por favor, ingrese una opción válida.");
@@ -58,19 +55,20 @@ public class Appjava {
 
 
         private void realizarSolicitud(String solicitud) {
-            // En try-with-resources los recursos (Socket, Scanner y PrintWriter) se declaran e inicializan dentro del bloque
-            //try. Separados por punto y coma (;). el cierre del Socket, Scanner y PrintWriter se realiza automáticamente al
-            // finalizar el bloque try. No es necesario utilizar bloques finally ni llamar manualmente a los métodos close()
-            // para cada recurso.
+
             try (Socket socket = conectarSocket();
-                 Scanner input = new Scanner(socket.getInputStream());
+                 BufferedReader entrada = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                  PrintWriter output = new PrintWriter(socket.getOutputStream(), true)) {
 
                 enviarSolicitud(output, solicitud);
-                recibirRespuesta(input);
+              //  recibirRespuesta(entrada); //debe imprimir
+                entrada.readLine();
+                System.out.println(entrada.readLine());
+
+            }catch (BindException e) {
 
             } catch (IOException e) {
-                imprimirError("Error de E/S: " + e.getMessage());
+                imprimirError("Error de E/S: controlador inalcanzable, " + e.getMessage());
             }
         }
 
@@ -80,10 +78,11 @@ public class Appjava {
 
         private void mostrarMenu() {
             System.out.println("------- MENÚ -------");
-            System.out.println("1. Solicitar estado");
-            System.out.println("2. Encender estufa");
-            System.out.println("3. Apagar estufa");
-            System.out.println("4. Solicitar temperatura");
+            System.out.println("1. Solicitar estado estufa");
+            System.out.println("2. Solicitar estado sensor de temperatura");
+            System.out.println("3. Encender estufa");
+            System.out.println("4. Apagar estufa");
+            System.out.println("5. Solicitar temperatura");
             System.out.println("0. Salir");
             System.out.println("--------------------");
             System.out.print("Ingrese una opción: ");
@@ -104,7 +103,9 @@ public class Appjava {
             while (input.hasNextLine()) {
                 String respuesta = input.nextLine();
                 if (respuesta != null) {
-                    System.out.println("Respuesta del servidor: " + respuesta);
+                    System.out.println("Respuesta del controlador: " + respuesta);
+                }if (respuesta ==null) {
+                    System.out.println("vacio");
                 }
             }
         }
@@ -130,6 +131,8 @@ class IniciarAlertaTCP extends Thread {
                 ManejadorAlertaMovimiento manejadorAlerta = new ManejadorAlertaMovimiento(socket);
                 manejadorAlerta.start();
             }
+        } catch (BindException e) {
+
         } catch (IOException e) {
             e.printStackTrace();
         }
